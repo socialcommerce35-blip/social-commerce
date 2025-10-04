@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -25,7 +24,6 @@ func main() {
 	db := client.Database("reel-service")
 
 	// GCS
-	fmt.Println(cfg)
 	gcsClient, err := infra.NewGCSClient(context.Background(), cfg.GCSBucketName, cfg.GCSCredsFile)
 	if err != nil {
 		log.Fatal("gcs error:", err)

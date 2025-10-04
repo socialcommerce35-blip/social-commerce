@@ -39,3 +39,7 @@ func (g *GCSClient) Upload(ctx context.Context, file io.Reader, fileName string)
 	url := fmt.Sprintf("https://storage.googleapis.com/%s/%s", g.bucket, fileName)
 	return url, nil
 }
+
+func (g *GCSClient) BucketName() string {
+    return g.bucket
+}

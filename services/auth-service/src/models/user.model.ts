@@ -1,43 +1,57 @@
-import mongoose, { Document, Schema } from 'mongoose';
-import * as crypto from 'crypto';
+import { Schema, model, Document, Types } from 'mongoose';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface IUser extends Document {
-  mobile: string;
-  email?: string;
-  name?: string;
-  isVerified: boolean;
-  otps: Array<{ code: string; expiresAt: Date; used: boolean }>;
-  otpRequests: Array<{ requestedAt: Date }>;
-  failedOtpAttempts: number;
-  saltKey: string;
-  roles: string[];
-  lastLogin?: Date;
-  lastLogout?: Date;
-  status: 'active' | 'inactive' | 'banned';
-  deviceInfo?: { deviceId?: string; deviceType?: string; ip?: string; userAgent?: string };
-  location?: { country?: string; city?: string; ip?: string };
-  createdAt: Date;
-  updatedAt: Date;
+    user_id: string; 
+    mobile: string;
+    role: 'user' | 'admin';
+    isVerified: boolean;       // has user verified OTP/login
+    lastLogin?: number;        // epoch of last login
+    createdAt: number;         // epoch milliseconds
+    updatedAt: number;         // epoch milliseconds
 }
 
-const userSchema = new Schema<IUser>({
-  mobile: { type: String, required: true, unique: true },
-  email: { type: String, unique: true, sparse: true },
-  name: { type: String },
-  isVerified: { type: Boolean, default: false },
+const userSchema = new Schema<IUser>(
+    {
+        user_id: { type: String, default: () => uuidv4(), unique: true },
+        mobile: { type: String, required: true, unique: true },
+        role: { 
+            type: String, 
+            enum: ['user', 'admin'], 
+            default: 'user'               
+        },
+        isVerified: { type: Boolean, default: false },
+        lastLogin: { type: Number }, // optional
+        createdAt: { type: Number, default: () => Date.now() },
+        updatedAt: { type: Number, default: () => Date.now() },
+    },
+    { timestamps: false,
+        versionKey: false,
+    } // disable default Date timestamps
+);
 
-  otps: [{ code: String, expiresAt: Date, used: Boolean }],
-  otpRequests: [{ requestedAt: Date }],
-  failedOtpAttempts: { type: Number, default: 0 },
+// Pre-save hook: set createdAt and updatedAt
+userSchema.pre('save', function (next) {
+    const now = Date.now();
+    this.updatedAt = now;
+    if (!this.createdAt) this.createdAt = now;
+    next();
+});
 
-  saltKey: { type: String, default: () => crypto.randomBytes(16).toString('hex') },
-  roles: { type: [String], default: ['user'] },
-  lastLogin: { type: Date },
-  lastLogout: { type: Date },
-  status: { type: String, enum: ['active', 'inactive', 'banned'], default: 'active' },
+// Pre-update hook: set updatedAt for update queries
+userSchema.pre('findOneAndUpdate', function (next) {
+    this.set({ updatedAt: Date.now() });
+    next();
+});
 
-  deviceInfo: { deviceId: String, deviceType: String, ip: String, userAgent: String },
-  location: { country: String, city: String, ip: String },
-}, { timestamps: true });
+userSchema.pre('updateOne', function (next) {
+    this.set({ updatedAt: Date.now() });
+    next();
+});
 
-export default mongoose.model<IUser>('User', userSchema);
+userSchema.pre('updateMany', function (next) {
+    this.set({ updatedAt: Date.now() });
+    next();
+});
+
+export const UserModel = model<IUser>('User', userSchema);

@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/socialcommerce35-blip/social-commerce/services/reel-service/internal/usecase"
@@ -17,7 +16,6 @@ func NewReelHandler(uc *usecase.ReelUsecase) *ReelHandler {
 
 func (h *ReelHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	userID := UserIDFromContext(r.Context())
-	fmt.Println(userID)
 	if userID == "" {
 		respondJSON(w, http.StatusUnauthorized, false, nil, "unauthorized")
 		return

@@ -9,6 +9,7 @@ export const generateOtp = (): string => {
   return "456123"
 };
 
+
 export const canRequestOtp = (user: IUser): boolean => {
   const now = new Date();
   const windowStart = new Date(now.getTime() - OTP_REQUEST_WINDOW_MS);

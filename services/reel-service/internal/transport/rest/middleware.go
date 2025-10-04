@@ -11,7 +11,7 @@ import (
 
 type contextKey string
 
-const UserIDKey contextKey = "user_id"
+const UserIDKey contextKey = "userId"
 
 func JWTMiddleware(secret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -41,8 +41,10 @@ func JWTMiddleware(secret string) func(http.Handler) http.Handler {
 				respondJSON(w, http.StatusUnauthorized, false, nil, "invalid claims")
 				return
 			}
+			fmt.Println(claims)
 
-			userID := claims["user_id"].(string)
+			userID := claims["userId"].(string)
+			fmt.Println(userID)
 			ctx := context.WithValue(r.Context(), UserIDKey, userID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -50,7 +52,6 @@ func JWTMiddleware(secret string) func(http.Handler) http.Handler {
 }
 
 func UserIDFromContext(ctx context.Context) string {
-	fmt.Println(UserIDKey)
 	if val, ok := ctx.Value(UserIDKey).(string); ok {
 		return val
 	}

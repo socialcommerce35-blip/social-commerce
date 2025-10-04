@@ -1,25 +1,28 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
 import express from 'express';
-import morgan from 'morgan';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import config from './config';
 import authRoutes from './routes/auth.routes';
-import { connectDB } from './config/db';
-import logger from './config/logger';
+import { requestLogger } from './middlewares/logger.middleware';
+import { errorHandler } from './middlewares/error.middleware';
+import logger from './utils/logger';
 
 const app = express();
+
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }));
 app.use(express.json());
-
-// HTTP request logging
-app.use(morgan('combined', {
-  stream: {
-    write: (message) => logger.info(message.trim()),
-  },
-}));
-
-connectDB();
+app.use(requestLogger);
 
 app.use('/api/auth', authRoutes);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => logger.info(`Server running on port ${PORT}`));
+app.use(errorHandler);
+
+mongoose.connect(config.mongoURI)
+    .then(() => logger.info('MongoDB connected'))
+    .catch(err => logger.error('MongoDB connection error: %s', err.message));
+
+export default app;
