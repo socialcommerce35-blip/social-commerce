@@ -3,6 +3,7 @@ import * as productService from '../services/product.service';
 import { successResponse, errorResponse } from '../utils/response';
 
 export const fetchProducts = async (req: Request, res: Response) => {
+  console.log('here')
   try {
     const filters = req.body;
     const products = await productService.getProducts(filters);
@@ -14,6 +15,7 @@ export const fetchProducts = async (req: Request, res: Response) => {
 
 export const fetchBrandsByPrice = async (req: Request, res: Response) => {
   try {
+    console.log('here2')
     const { min, max } = req.body;
     const brands = await productService.getBrandsByPriceRange(min, max);
     res.json(successResponse(brands));
