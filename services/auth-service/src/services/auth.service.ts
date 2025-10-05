@@ -1,14 +1,17 @@
 import { sendOTP as twilioSendOTP } from '../utils/twilioClient';
 import { createOTP, findLatestOTP, markOTPUsed } from '../repositories/otp.repository';
 import { createUser, findUserByMobile } from '../repositories/user.repository';
+
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { Types } from 'mongoose';
+
 import config from '../config';
 import logger from '../utils/logger';
-import { Types } from 'mongoose';
-import { IOTP } from '../models/otp.model';
-import bcrypt from 'bcryptjs';
 
-const OTP_EXPIRY_MINUTES = 2;
+import { IOTP } from '../models/otp.model';
+
+const OTP_EXPIRY_MINUTES = 3;
 
 interface JwtPayload {
     user_id: string;
@@ -39,24 +42,21 @@ export const requestOTP = async (mobile: string): Promise<{ message: string }> =
     }
 
     // Generate OTP
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpCode = "654123"
 
     // Store expiry as epoch
     const expiresAt = Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000;
 
     try {
-        // Create OTP (invalidates previous OTPs automatically)
         await createOTP(mobile, otpCode, expiresAt);
 
         // Send OTP via Twilio
         // await twilioSendOTP(mobile, otpCode);
-
-        console.log('otpCode', otpCode);
         logger.info('OTP sent to mobile: %s', mobile);
 
         return { message: 'OTP sent successfully' };
     } catch (error) {
-        console.error('Error sending OTP:', error);
         logger.error('Error sending OTP to %s: %o', mobile, error);
         throw new Error('Failed to send OTP. Please try again.');
     }

@@ -1,5 +1,5 @@
 import morgan from 'morgan';
-import logger from '../utils/logger'; // make sure you import your logger
+import logger from '../utils/logger';
 
 // --- Express request logging middleware using morgan ---
 export const requestLogger = morgan(

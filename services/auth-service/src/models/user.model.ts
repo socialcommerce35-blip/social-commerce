@@ -5,10 +5,10 @@ export interface IUser extends Document {
     user_id: string; 
     mobile: string;
     role: 'user' | 'admin';
-    isVerified: boolean;       // has user verified OTP/login
-    lastLogin?: number;        // epoch of last login
-    createdAt: number;         // epoch milliseconds
-    updatedAt: number;         // epoch milliseconds
+    isVerified: boolean;      
+    lastLogin?: number;   
+    createdAt: number;   
+    updatedAt: number;    
 }
 
 const userSchema = new Schema<IUser>(
@@ -21,13 +21,14 @@ const userSchema = new Schema<IUser>(
             default: 'user'               
         },
         isVerified: { type: Boolean, default: false },
-        lastLogin: { type: Number }, // optional
+        lastLogin: { type: Number },
         createdAt: { type: Number, default: () => Date.now() },
         updatedAt: { type: Number, default: () => Date.now() },
     },
-    { timestamps: false,
+    { 
+        timestamps: false,
         versionKey: false,
-    } // disable default Date timestamps
+    }
 );
 
 // Pre-save hook: set createdAt and updatedAt

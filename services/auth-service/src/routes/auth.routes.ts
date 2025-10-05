@@ -7,4 +7,5 @@ const router = Router();
 router.post('/send-otp', otpRateLimiter, sendOTPController);
 router.post('/verify-otp', verifyOTPController);
 
+
 export default router;

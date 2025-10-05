@@ -9,9 +9,7 @@ export const sendOTPController = async (req: Request, res: Response) => {
         const result = await requestOTP(mobile);
         sendSuccess(res, result);
     } catch (err: any) {
-        console.error('Send OTP error:', err);
         logger.error('Send OTP error: %o', err);
-
         const message = err?.message || 'Unknown error while sending OTP';
         sendError(res, message, 400);
     }
