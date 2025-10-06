@@ -21,7 +21,7 @@ export const updateOrCreateUser = async (
     data: UpdateData
   ): Promise<IUser> => {
     if (!data.username) {
-      throw new Error('Username is required for first time creation');
+      throw new Error('Username is required');
     }
   
     // Find existing user
@@ -30,7 +30,7 @@ export const updateOrCreateUser = async (
     if (!user) {
       // First-time creation
       const usernameTaken = await User.findOne({ username: data.username });
-      if (usernameTaken) throw new Error('Username already taken');
+      if (usernameTaken) throw new Error('Username already exist. Try something new');
   
       user = await User.create({
         user_id,
@@ -59,6 +59,6 @@ export const updateOrCreateUser = async (
     user.preferences = data.preferences ?? user.preferences;
     user.updatedAt = Date.now();
   
-    await user.save(); // triggers pre-save hook for updatedAt
+    await user.save();
     return user;
   };

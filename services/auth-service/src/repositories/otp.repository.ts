@@ -31,6 +31,11 @@ export const findLatestOTP = async (mobile: string): Promise<IOTP | null> => {
         .exec();
 };
 
+export const findMobileNumber = async (mobile: string): Promise<IOTP | null> => {
+    return OTPModel.findOne({ mobile }).exec();
+};
+
+
 // Mark OTP as used
 export const markOTPUsed = async (id: Types.ObjectId) => {
     await OTPModel.updateOne({ _id: id }, { used: true }).exec();

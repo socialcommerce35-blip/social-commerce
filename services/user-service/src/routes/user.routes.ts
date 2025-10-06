@@ -7,7 +7,7 @@ const router = Router();
 // Only fetch profile
 router.get('/profile', authenticate, getUserProfileController);
 
-// Single update endpoint
+// Single update endpoint - Handle profile creation also
 router.put('/profile', authenticate, updateUserProfileController);
 
 export default router;

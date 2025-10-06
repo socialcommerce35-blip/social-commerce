@@ -13,8 +13,8 @@ export interface IUser extends Document {
     price_range?: { min: number; max: number } | null;
     styles?: string[];
   };
-  createdAt: number; // epoch ms
-  updatedAt: number; // epoch ms
+  createdAt: number;
+  updatedAt: number;
 }
 
 const UserSchema: Schema = new Schema(
@@ -37,8 +37,8 @@ const UserSchema: Schema = new Schema(
     updatedAt: { type: Number },
   },
   {
-    timestamps: false, // we handle manually
-    versionKey: false, // no __v
+    timestamps: false,
+    versionKey: false, 
   }
 );
 

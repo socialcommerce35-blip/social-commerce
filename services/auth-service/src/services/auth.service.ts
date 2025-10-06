@@ -1,5 +1,5 @@
 import { sendOTP as twilioSendOTP } from '../utils/twilioClient';
-import { createOTP, findLatestOTP, markOTPUsed } from '../repositories/otp.repository';
+import { createOTP, findLatestOTP, markOTPUsed, findMobileNumber } from '../repositories/otp.repository';
 import { createUser, findUserByMobile } from '../repositories/user.repository';
 
 import bcrypt from 'bcryptjs';
@@ -63,6 +63,9 @@ export const requestOTP = async (mobile: string): Promise<{ message: string }> =
 };
 
 export const verifyOTP = async (mobile: string, otp: string) => {
+    const otpGenerated: IOTP | null = await findMobileNumber(mobile);
+    if (!otpGenerated) throw new Error('No OTP request found for this mobile');
+
     const otpEntry: IOTP | null = await findLatestOTP(mobile);
     if (!otpEntry) throw new Error('No unused OTP found for this mobile');
 
@@ -78,7 +81,12 @@ export const verifyOTP = async (mobile: string, otp: string) => {
 
     // Find or create user
     let user = await findUserByMobile(mobile);
-    if (!user) user = await createUser({ mobile, role: 'user' });
+    let action = "logged_in";
+
+    if (!user) {
+        user = await createUser({ mobile, role: 'user' })
+        action = "registered"
+    }
 
     // Update user auth info
     user.isVerified = true;
@@ -96,5 +104,5 @@ export const verifyOTP = async (mobile: string, otp: string) => {
         { expiresIn: '24h' }
     );
 
-    return { token };
+    return { token, action: action, user_id: user.user_id };
 };
