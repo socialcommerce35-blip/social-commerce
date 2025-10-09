@@ -1,59 +1,117 @@
-import mongoose, { Schema, Document } from 'mongoose';
-import logger from '../utils/logger';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
-export interface IUser extends Document {
-  user_id: string;
-  username: string;
-  name?: string;
-  age?: number;
-  gender?: 'male' | 'female' | 'other';
-  email?: string;
-  mobile: string;
-  preferences: {
-    price_range?: { min: number; max: number } | null;
-    styles?: string[];
+export interface IUserProfile extends Document {
+  userId: string; 
+  
+  // Basic user info
+  email?: string | null;
+  mobile?: string;
+  profile?: {
+    firstName?: string | null;
+    lastName?: string | null;
+    avatar?: {
+      url?: string | null;
+      publicId?: string | null;
+    };
+    gender?: string | null;
+    dateOfBirth?: string | null; // epoch
+    bio?: string | null;
+    username?: string | null;
   };
-  createdAt: number;
-  updatedAt: number;
+
+  // Social metrics
+  social?: {
+    followersCount: number;
+    followingCount: number;
+    postsCount: number;
+  };
+
+  // Preferences
+  buckets?: {
+    bucketId: string; 
+    selectedAt: number;
+  }[];
+
+  styles?: {
+    styleId: string; 
+    selectedAt: number; 
+  }[];
+
+  // Derived preferences for quick feed generation
+  derived?: {
+    priceRanges?: { min: number; max: number }[];
+    brandIds?: string[]; 
+    styleIds?: string[];
+  };
+
+  onboardingCompleted?: boolean;
+  isActive?: boolean;
+  role?: 'user' | 'seller' | 'admin';
+
+  createdAt?: number; // epoch
+  updatedAt?: number; // epoch
 }
 
-const UserSchema: Schema = new Schema(
+const userProfileSchema: Schema<IUserProfile> = new Schema(
   {
-    user_id: { type: String, required: true, index: true, unique: true },
-    username: { type: String, required: true, unique: true },
-    name: { type: String },
-    age: { type: Number },
-    gender: { type: String, enum: ['male', 'female', 'other'] },
-    email: { type: String },
-    mobile: { type: String, required: true },
-    preferences: {
-      price_range: {
-        min: { type: Number, default: 0 },
-        max: { type: Number, default: 0 },
+    userId: { type: String, required: true, unique: true },
+    email: { type: String,  trim: true },
+    mobile: { type: String },
+    profile: {
+      firstName: String,
+      lastName: String,
+      avatar: {
+        url: String,
+        publicId: String,
       },
-      styles: { type: [String], default: [] },
+      gender: { type: String, enum: ['Male', 'Female', 'Other', 'Prefer not to say'] },
+      dateOfBirth: String,
+      bio: String,
+      username: { type: String, unique: true, trim: true, required: true },
     },
-    createdAt: { type: Number },
-    updatedAt: { type: Number },
+    social: {
+      followersCount: { type: Number, default: 0 },
+      followingCount: { type: Number, default: 0 },
+      postsCount: { type: Number, default: 0 },
+    },
+    buckets: [
+      {
+        bucketId: { type: String, required: true },
+        selectedAt: { type: Number, default: () => Date.now() },
+      },
+    ],
+    styles: [
+      {
+        styleId: { type: String, required: true },
+        selectedAt: { type: Number, default: () => Date.now() },
+      },
+    ],
+    derived: {
+      priceRanges: [{ min: Number, max: Number }],
+      brandIds: [String],
+      styleIds: [String],
+    },
+    onboardingCompleted: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: true },
+    role: { type: String, enum: ['user', 'seller', 'admin'], default: 'user' },
+    createdAt: { type: Number, default: () => Date.now() },
+    updatedAt: { type: Number, default: () => Date.now() },
   },
   {
+    versionKey: false,
     timestamps: false,
-    versionKey: false, 
   }
 );
 
-// Pre-save hook: only first-time creation
-UserSchema.pre<IUser>('save', function (next) {
+// Pre-save to update updatedAt
+userProfileSchema.pre('save', function (next) {
   const now = Date.now();
-  if (!this.createdAt) this.createdAt = now;
   this.updatedAt = now;
-  logger.info(`User pre-save hook: ${this.user_id}`);
+  if (!this.createdAt) this.createdAt = now;
   next();
 });
 
-// Post-save hook
-UserSchema.post<IUser>('save', function (doc) {
-  logger.info(`User saved: ${doc.user_id}`);
-});
-
-export default mongoose.model<IUser>('user-profiles', UserSchema);
+export const UserProfile: Model<IUserProfile> = mongoose.model<IUserProfile>(
+  'UserProfile',
+  userProfileSchema
+);

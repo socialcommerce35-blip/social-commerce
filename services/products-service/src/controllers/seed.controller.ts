@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Product } from '../models/product.model';
-import { successResponse, errorResponse } from '../utils/response';
+import { successResponse, errorResponse } from '../utils/responseHandler';
 import { faker } from '@faker-js/faker';
 import { logger } from '../utils/logger';
 
@@ -10,8 +10,8 @@ export const seedProducts = async (req: Request, res: Response) => {
     const products = [];
 
     for (let i = 0; i < 500; i++) {
-      const brand_id = faker.string.uuid();
-      const brand_name = faker.company.name();
+      const brandId = faker.string.uuid();
+      const brandName = faker.company.name();
       const category = faker.commerce.department();
       const title = faker.commerce.productName();
       const style = faker.commerce.productAdjective();
@@ -19,8 +19,8 @@ export const seedProducts = async (req: Request, res: Response) => {
       const description = faker.commerce.productDescription();
 
       products.push({
-        brand_id,
-        brand_name,
+        brandId,
+        brandName,
         category,
         title,
         style,
@@ -35,6 +35,7 @@ export const seedProducts = async (req: Request, res: Response) => {
     res.json(successResponse(null, '500 dummy products inserted successfully'));
   } catch (error) {
     logger.error('Error seeding products:', error);
-    res.status(500).json(errorResponse());
+    res.status(500).json(errorResponse(error));
   }
 };
+

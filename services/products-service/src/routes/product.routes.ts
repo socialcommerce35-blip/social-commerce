@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import * as productController from '../controllers/product.controller';
-import { protect } from '../middlewares/auth.middleware';
+import { authenticate } from '../middlewares/auth.middleware';
 import { apiLimiter } from '../middlewares/rateLimit.middleware';
 
 const router = Router();
 
 // All routes protected and rate limited
-router.get('/list', protect, apiLimiter, productController.fetchProducts);
-router.post('/brands', protect, apiLimiter, productController.fetchBrandsByPrice);
-router.post('/styles', protect, apiLimiter, productController.fetchStylesByBrands);
+router.get('/list', authenticate, apiLimiter, productController.fetchProducts);
+router.get('/buckets', authenticate, apiLimiter, productController.fetchBrandsByPrice);
+router.get('/styles', authenticate, apiLimiter, productController.fetchStylesByBuckets);
 
 export default router;

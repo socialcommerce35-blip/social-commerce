@@ -17,11 +17,17 @@ export const sendOTPController = async (req: Request, res: Response) => {
 
 export const verifyOTPController = async (req: Request, res: Response) => {
     try {
-        const { mobile, otp } = req.body;
-        const result = await verifyOTP(mobile, otp);
-        sendSuccess(res, result);
+      const { mobile, otp } = req.body;
+
+      if (!mobile || !otp) {
+        return sendError(res, 'Mobile and OTP are required', 400);
+      }
+  
+      const result = await verifyOTP(mobile, otp);
+      return sendSuccess(res, result);
+  
     } catch (err: any) {
-        logger.error('Verify OTP error: %s', err.message);
-        sendError(res, err.message, 400);
+      logger.error('Verify OTP error: %s', err.message);
+      return sendError(res, err.message || 'Something went wrong', 400);
     }
-};
+  };

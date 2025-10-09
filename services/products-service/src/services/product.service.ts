@@ -1,16 +1,58 @@
+import { Style, IStyle } from "../models/style.model";
+import { Bucket, IBucket } from '../models/buckets.model';
+import { Brand, IBrand } from '../models/brand.model';
 import { Product, IProduct } from '../models/product.model';
 import { logger } from '../utils/logger';
 
-export const getProducts = async (filters: any): Promise<IProduct[]> => {
-  try {
-    const query: any = {};
-    if (filters?.price) query.price = { $gte: filters.price.min, $lte: filters.price.max };
-    if (filters?.brands) query.brand_name = { $in: filters.brands };
-    if (filters?.styles) query.style = { $in: filters.styles };
-    if (filters?.category) query.category = filters.category;
+import { FilterQuery } from 'mongoose';
 
-    const products = await Product.find(query);
-    return products;
+interface ProductFilters {
+  price?: { min: number; max: number };
+  brands?: string[];
+  styles?: string[];
+  category?: string;
+  page?: number;
+  limit?: number;
+}
+
+export const getProducts = async (filters: ProductFilters) => {
+  try {
+    const query: FilterQuery<IProduct> = {};
+
+    if (filters?.price) {
+      query.price = { $gte: filters.price.min, $lte: filters.price.max };
+    }
+    if (filters?.brands) {
+      query.brandId = { $in: filters.brands };
+    }
+    if (filters?.styles) {
+      query.styleIds = { $in: filters.styles };
+    }
+    if (filters?.category) {
+      query.category = filters.category;
+    }
+
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const [total, products] = await Promise.all([
+      Product.countDocuments(query),
+      Product.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(), // ✅ modern .lean() typing works automatically
+    ]);
+
+    return {
+      success: true,
+      total,
+      count: products.length,
+      page,
+      totalPages: Math.ceil(total / limit),
+      products, // plain JS objects (fast for API)
+    };
   } catch (error) {
     logger.error('Error in getProducts service:', error);
     throw error;
@@ -18,80 +60,69 @@ export const getProducts = async (filters: any): Promise<IProduct[]> => {
 };
 
 
-export const getBrandsByPriceRange = async (
-  min: number,
-  max?: number
-): Promise<Record<string, string[]>> => {
-  try {
-    const pipeline: any[] = [];
 
-    // Step 1: Match by min/max
-    if (max) {
-      pipeline.push({ $match: { price: { $gte: min, $lte: max } } });
-    } else {
-      // If max not provided → min+
-      pipeline.push({ $match: { price: { $gte: min } } });
-    }
+export const getBrandsByPriceRange = async (): Promise<any[]> => {
+  // Fetch all buckets
+  const buckets: IBucket[] = await Bucket.find({ isActive: true }).sort({ displayOrder: 1 });
 
-    // Step 2: Add category buckets
-    pipeline.push({
-      $addFields: {
-        priceCategory: {
-          $switch: {
-            branches: [
-              { case: { $lte: ["$price", 500] }, then: "0-500" },
-              { case: { $and: [{ $gt: ["$price", 500] }, { $lte: ["$price", 1000] }] }, then: "500-1000" },
-              { case: { $and: [{ $gt: ["$price", 1000] }, { $lte: ["$price", 1500] }] }, then: "1000-1500" }
-            ],
-            default: "1500+"
-          }
-        }
-      }
+  const result = [];
+
+  for (const bucket of buckets) {
+    // Fetch brands linked to this bucket
+    const brands: IBrand[] = await Brand.find({
+      brandId: { $in: bucket.brandIds },
+      isActive: true
     });
 
-    // Step 3: Group by category → unique brands
-    pipeline.push({
-      $group: {
-        _id: "$priceCategory",
-        brands: { $addToSet: "$brand_name" }
-      }
+    result.push({
+      bucketId: bucket.bucketId,
+      bucketName: bucket.name,
+      priceRange: bucket.priceRange,
+      brands: brands.map(b => ({
+        brandId: b.brandId,
+        name: b.name,
+        slug: b.slug,
+        logo: b.logo,
+        description: b.description,
+        website: b.website,
+        metadata: b.metadata
+      }))
     });
-
-    const result = await Product.aggregate(pipeline);
-
-    // Convert array → object { category: [brands] }
-    const categoryBrands: Record<string, string[]> = {};
-    result.forEach((item) => {
-      categoryBrands[item._id] = item.brands;
-    });
-
-    return categoryBrands;
-  } catch (error) {
-    logger.error("Error in getBrandsByPriceRange service:", error);
-    throw error;
   }
+
+  return result;
 };
-export const getStylesByBrands = async (brands: string[]): Promise<Record<string, string[]>> => {
-  try {
-    const result = await Product.aggregate([
-      { $match: { brand_name: { $in: brands } } },
-      {
-        $group: {
-          _id: "$brand_name",
-          styles: { $addToSet: "$style" } // unique styles
-        }
-      }
-    ]);
 
-    // Transform result into { brand: styles[] } object
-    const brandStyles: Record<string, string[]> = {};
-    result.forEach((item) => {
-      brandStyles[item._id] = item.styles;
-    });
+export const getStylesByBrands = async (brandIds: string[]) => {
+  if (!brandIds || brandIds.length === 0) return { styles: [], count: 0 };
 
-    return brandStyles;
-  } catch (error) {
-    logger.error('Error in getStylesByBrands service:', error);
-    throw error;
-  }
+  const styles = await Style.find({
+    brandIds: { $in: brandIds },
+    isActive: true
+  }).sort({ displayOrder: 1 });
+
+  // Remove duplicates by styleId
+  const uniqueStylesMap: Record<string, any> = {};
+  styles.forEach(style => {
+    uniqueStylesMap[style.styleId] = style;
+  });
+
+  const uniqueStyles = Object.values(uniqueStylesMap);
+  return { styles: uniqueStyles, count: uniqueStyles.length };
+};
+
+export const getBrandsByBucketIds = async (bucketIds: string[]) => {
+  const buckets = await Bucket.find({ 
+    bucketId: { $in: bucketIds },
+    isActive: true
+  });
+
+  // Map bucketId => array of brands
+  const result: Record<string, { brandId: string }[]> = {};
+
+  buckets.forEach(bucket => {
+    result[bucket.bucketId] = bucket.brandIds.map(brandId => ({ brandId }));
+  });
+
+  return result;
 };

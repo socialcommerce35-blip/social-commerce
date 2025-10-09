@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
-import { getUserProfile, updateOrCreateUser } from '../services/user.service';
+import { getUserProfile, updateOrCreateUserProfile } from '../services/user.service';
 import { successResponse, errorResponse } from '../utils/responseHandler';
 
 export const getUserProfileController = async (req: AuthRequest, res: Response) => {
@@ -15,8 +15,8 @@ export const getUserProfileController = async (req: AuthRequest, res: Response) 
 
 export const updateUserProfileController = async (req: AuthRequest, res: Response) => {
   try {
-    const user = await updateOrCreateUser(req.user!.user_id, req.user!.mobile, req.body);
-    res.json(successResponse(user));
+    const user = await updateOrCreateUserProfile(req.user!.user_id, req.user!.mobile, req.user!.role, req.body);
+    res.json(successResponse(user, 'User Profile updated successfully'));
   } catch (err: unknown) {
     if (err instanceof Error) {
       return res.status(400).json(errorResponse(err.message));

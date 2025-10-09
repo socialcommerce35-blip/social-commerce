@@ -1,8 +1,20 @@
+import mongoose from 'mongoose';
 import app from './app';
-import { logger } from './utils/logger';
+import config from './config';
+import {logger} from './utils/logger';
 
-const PORT = process.env.PORT || 5000;
+const startServer = async () => {
+  try {
+    await mongoose.connect(config.mongoURI);
+    logger.info('Connected to MongoDB');
 
-app.listen(PORT, () => {
-  logger.info(`Products service running on port ${PORT}`);
-});
+    app.listen(config.port, () => {
+      logger.info(`Server running on port ${config.port}`);
+    });
+  } catch (err) {
+    logger.error('Failed to start server', err);
+    process.exit(1);
+  }
+};
+
+startServer();

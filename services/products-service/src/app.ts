@@ -1,23 +1,27 @@
 import express from 'express';
-import dotenv from 'dotenv';
+import cors from 'cors';
+import morgan from 'morgan';
+import { requestLogger } from './middlewares/logger.middleware';
+import { errorHandler } from './middlewares/error.middleware';
 import productRoutes from './routes/product.routes';
-import { connectDB } from './config/db';
-import { errorHandler } from './utils/errorHandler';
 import seedRoutes from './routes/seed.routes';
-
-dotenv.config();
 const app = express();
 
-app.use(express.json());
+// Enable CORS
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
-// Connect DB
-connectDB();
+app.use(express.json());
+app.use(morgan('dev'));
+app.use(requestLogger);
 
 // Routes
 app.use('/api/products', productRoutes);
 app.use('/api/seed', seedRoutes);
 
-// Error Handler
 app.use(errorHandler);
 
 export default app;
